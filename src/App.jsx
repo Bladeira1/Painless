@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from"react";
+import React,{useEffect,useMemo,useState} from"react";
 import{
     ArrowDown,
     ArrowLeft,
@@ -486,7 +486,7 @@ function DestinationCard({
         <article className="destination-card">
             <button 
                 className="destination-image"
-                onClick={inSlect}
+                onClick={onSelect}
                 aria-label={`Plan a trip to ${destination.name}`}
             >
                 <img src={destination.image} alt={destination.name} loading="lazy"/>
