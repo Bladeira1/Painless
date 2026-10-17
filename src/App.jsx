@@ -640,9 +640,471 @@ function PlannerPage({
                             </div>
                         </div>
                     )}
-                    
+                    {step===2 &&(
+                        <div className="form-panel">
+                            <span className="panel-licker">02 - WHAT YOU LOVE</span>
+                            <h2>Make it feel liyou and choose what you love.</h2>
+                            <p>Select the things you would love to experience.</p>
+                            <div className="interest-grid">
+                                {interests.map((interest)=>{
+                                    const selected=preferences.onterests.includes(interest.id);
+                                    return(
+                                        <button 
+                                            className={`interest-option ${selected ?"interest-selected":""}`}
+                                            key={interest.id}
+                                            onClick={()=>toggleInterest(interest.id)}
+                                            aria-pressed={selected}
+                                        >
+                                            <span className="interest-emoji">{interest.emoji}</span>
+                                            <span>{interest.label}
+                                                {selected && <Check size={14}/>}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="form-field pace-field">
+                                <label>What kind of pace feels right?</label>
+                                <div className="pace-options">
+                                    {[
+                                        {id:"relaxed",title:"Slow and easy",description:"Room to brathe",emoji:"☮︎˚࿔"},
+                                        {id:"balanced",title:"Alittle of both",description:"A balanced rhythme",emoji:"⚖️"},
+                                        {id:"packed",title:"Make it count",description:"More to discover",emoji:"🔥"}
+                                    ].map((item)=>(
+                                        <button 
+                                            key={item.id}
+                                            className={`pace-option ${preferences.pace===item.id?"pace-selected":""}`}
+                                            onClick={()=> updatePreference("pace",item.id)}
+                                            aria-pressed={preferences.pace===item.id}
+                                        >
+                                            <span>{item.emoji}</span>
+                                            <strong>{item.title}</strong>
+                                            <small>{item.description}</small>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div> 
+                    )}
+                    {step===3 &&(
+                        <div className="form-panel">
+                            <span className="panel-kicker">03 - THE PRACTICAL DETAILS</span>
+                            <h2>Let's talk budget.</h2>
+                            <p>Set your total budget for this trip, including everyone travelling.</p>
+                            <div className="form-field">
+                                <label htmlFor="currency">Currency</label>
+                                <select 
+                                    id="currency"
+                                    value={preferences.currency}
+                                    onChange={(event)=>updatePreference("currency",event.target.value)}
+                                >
+                                    <option value="EUR">EUR - Euro</option>
+                                    <option value="USD">USD - Us dollar</option>
+                                    <option value="GBP">GBP - Pound sterling</option>
+                                </select>
+                                <span className="field-hint">
+                                    Changing currency changes the display only. It does not convert prices.
+                                </span>
+                            </div> 
+                            <div className="budget-entry">
+                                <label htmlfor="budget">Total trip budget</label>
+                                <div className="budget-input-wrap">
+                                    <span>{preferences.currency}</span>
+                                    <input 
+                                        id="budget"
+                                        type="number"
+                                        min="0"
+                                        step="50"
+                                        value={preferences.budget}
+                                        onChange={(event)=>updatePreference(
+                                            "budget",
+                                            Math.max(0,Number(event.target.value) || 0)
+                                        )}
+                                    />
+                                </div>
+                                <input 
+                                    aria-label="Adjust trip budget"
+                                    type="range"
+                                    min="100"
+                                    max="10000"
+                                    step="50"
+                                    value={Math.min(10000,Math.max(100,totalBudget))}
+                                    onChange={(event)=>updatePreference("budget",Number(event.target.value))}
+                                />
+                                <div className="range-labels"><span>100</span><span>10,000</span></div>
+                            </div>
+                            <div className="budget-summary">
+                                <div><span>Budget per person</span><strong>{money(perPerson,preferences.currency)}</strong></div>
+                                <div><span>Budget per person / day</span><strong>{money(perDay,preferences.currency)}</strong></div>
+                            </div> 
+                            <div className="info-note">
+                                <Wallet size={18}/>
+                                <p>I'll estimate accommodation, food, local transport and activities.Flights are not included in this first version.</p>
+                            </div>
+                        </div> 
+                    )}
+                    {errors && <p className="form-error" role="alert">{errors}</p>}
+                    <div className="form-navigation">
+                        <span>Step {step} of 3</span>
+                        {step>3?(
+                            <button className="button button-primary" onClick={goNext}>
+                                Continue<ArrowRight size={17}/>
+                            </button>
+                        ):(
+                            <button className="button button-primary" onClick={onGenerate}>
+                                <Sparkles size={17}/> Generate my trip
+                            </button>
+                        )}
+                    </div>
                 </div>
+                <aside className="planner-aside">
+                    <div className="aside-image">
+                        <img src={selectedDestination.image} alt={selectedDestination.name}/>
+                        <span className="aside-image-label"><MapPin size={13}/>YOUR DESTINATION</span>
+                    </div>
+                    <div className="aside-content">
+                        <span className="destination-country">{selectedDestination.country}</span>
+                        <h3>{selectedDestination.name}</h3>
+                        <p>{selectedDestination.description}</p>
+                        <div className="aside-divider"/>
+                        <div className="aside-stat">
+                            <CalendarDays size={17}/>
+                            <span>Duration</span><strong>{days} days</strong>
+                        </div>
+                        <div className="aside-stat">
+                            <Users size={17}/>
+                            <span>Travelers</span><strong>{travelers}</strong>
+                        </div>
+                        <div className="aside-stat">
+                            <Wallet size={17}/>
+                            <span>Total budget</span><strong>{money(totalBudget,preferences.currency)}</strong>
+                        </div>
+                        <div className="aside-tip">
+                            <sparkles size={16}/>
+                            <span>Your itinerary will adapt to your interests and preferred pace.</span>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </section>
-    )
+    );
 }
+function ItineraryPage({
+    trip,
+    activeDay,
+    setActiveDay,
+    onBack,
+    onEdit,
+    onExport,
+    onshare,
+    isComplete,
+    toggleComplete
+}){
+    const{itinerary,preferences}=trip;
+    const day=itinerary.days[activeDay]?? itinerary.days[0];
+    const currency=preferences.currency;
+    const completedCount=itinerary.days.reduce(
+        (total,item)=>total+item.activities.filter(
+            (activity)=> isComplete(trip.id,item.day,activity.id)
+        ).length,
+        0
+    );
+    const totalActivities=itinerary.days.reduce(
+        (total,item)=>total+item.activities.length,
+        0
+    );
+    const progress=totalActivities 
+        ?Math.round(completedCount/totalActivities*100)
+        :0;
+        return(
+            <section className="itinerary-page">
+                <button className="back-link" onClick={onBack}>
+                    <ArrowLeft size={16}/>My trips
+                </button>
+                <div className="itinerary-hero">
+                    <div className="itinerary-hero-image">
+                        <img src={itinerary.destination.image} alt={itinerary.destination.nme}/>
+                    </div>
+                    <div className="itinerary-hero-copy">
+                        <span className="eyebrow"><Sparkles size={14}/>YOUR PERSONALITINERARY</span>
+                        <h1>{itinerary.destination.name},<em>your way.</em></h1>
+                        <p>{itinerary.destination.description}</p>
+                        <div className="itinerary-meta">
+                            <span><CalendarDays size={16}/> {preferences.days}days</span>
+                            <span><Users size={16}/>{preferences.travelers} travelers</span>
+                            <span><Wallet size={16}/> {money(itinerary.totalBudget,currency)} budget</span>
+                        </div>
+                        <div className="itinerary-actions">
+                            <button className="button button-primary" onClick={onExport}>
+                                <Download size={16}/> Export plan
+                            </button>
+                            <button className="button button-outline" onClick={onShare}>
+                                <Share2 size={16}/> Share
+                            </button>
+                            <button className="button button-outline" onClick={onEdit}>
+                                Edit preferences
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="itinerary-stats">
+                    <div className="stats-card">
+                        <span className="stat-icon"><Wallet/></span>
+                        <span className="stat-label">Estimated total</span>
+                        <strong>{money(itinerary.estimatedTotal,currency)}</strong>
+                        <small>For {preferences.travelers} travelers</small>
+                    </div>
+                    <div className="stat-card">
+                        <span className="stat-icon"><CalendarDays/></span>
+                        <span className="stat-label">Daily estimate</span>
+                        <strong>{money(itinerary.estimatedTotal/preferences.days,currency)}</strong>
+                        <small>Average per day, group total</small>
+                    </div>
+                    <div className="stat-card">
+                        <span className="stat-icon"><Check/></span>
+                        <span className="stat-label">Your progress</span>
+                        <strong>{progress}%</strong>
+                        <div className="progress-track"><span style={{width:`${progress}%`}}/></div>
+                        <small>{completedCount} of {totalActivities} activities</small>
+                    </div>
+                    <div className="stat-card">
+                        <span className="stat-icon"><Wallet/></span>
+                        <span className="stat-label">Budget balance</span>
+                        <strong className={itinerary.remainingBudget<0? "over-budget":""}>
+                            {money(itinerary.remainingBudget,currency)}
+                        </strong>
+                        <small>{itinerary.remainingBudget <0? "Above your budget":"Estimated remaining"}</small>
+                    </div>
+                </div>
+                <div className="itinerary-body">
+                    <aside className="day-sidebar">
+                        <div classNme="sidebar-title">
+                            <span className="eyebrow">YOUR JOURNEY</span>
+                            <h3>Day by day</h3>
+                        </div>
+                        <div className="day-list">
+                            {itinerary.days.map((item,index)=>{
+                                const done=item.activities.filter(
+                                    (activity)=>isComplete(trip.id,item.day,activity.id)
+                                ).length;
+                                const active=activeDay===index;
+                                return(
+                                    <button 
+                                        key={item.day}
+                                        className={`day-list-item ${active? "day-selected":""}`}
+                                        onClick={()=>setActiveDay(index)}
+                                >
+                                    <span className="day-number">{String(item.day).padStart(2,"0")}</span>
+                                    <span className="day-info">
+                                        <strong>Day {item.day}</strong>
+                                        <small>{item.title}</small>
+                                        <small>{done}/{item.activities.length} complete</small>
+                                    </span>
+                                    <ArrowRight size={15}/>
+                                </button>
+                                );
+                            })}
+                        </div>
+                        <div className="sidebar-budget">
+                            <span><Wallet size={17}/> Trip budget</span>
+                            <strong>{money(itinerary.totalBudget,currency)}</strong>
+                            <small>Estimated spend: {money(itinerary.estimatedTotal,currency)}</small>
+                        </div>
+                    </aside>
+                    <div className="day-detail">
+                        <div className="day-detail-heading">
+                            <div>
+                                <span className="eyebrow">DAY {String(day.day).pasStart(2,"0")}</span>
+                                <h2>{day.title}</h2>
+                                <p>A suggested rhythm for your day. Adjust it as you like.</p>
+                            </div>
+                            <div className="day-cost">
+                                <span>Estimated day cost</span>
+                                <strong>{money(day.estimatedCostForGroup,currency)}</strong>
+                            </div>
+                        </div>
+                        <div className="daily-timeline">
+                            {day.activities.map((activity,index)=>{
+                                const done=isComplete(trip.id,day.day,activity.id);
+                                return(
+                                    <article className={`activity-card ${done?"activity-done":""}`} key={`${day.day}-${activity.id}-${index}`}>
+                                        <div className="activity-time">
+                                            <span className="activity-time-dot"/>
+                                            <span>{activity.time}</span>
+                                        </div>
+                                        <div className="activity-main">
+                                            <div className="activity-emoji">{activity.emoji}</div>
+                                            <div className="activity-copy">
+                                                <h3>{activity.title}</h3>
+                                                <p>{activity.description}</p>
+                                                <div className="activity-meta">
+                                                    <span><Clock3 size={14}/>{durationLabel(activity.duration)}</span>
+                                                    <span><Wallet size={14}/>{money(activity.cost,currency)}/person*</span>
+                                                    <span>{activity.outdoor?"Outdoors":"Indoors"}</span>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                className={`complete-button ${done? "complete-active":""}`}
+                                                onClick={()=>toggleComplete(trip.id,day.day,activity.id)}
+                                                aria-label={done? "Mark activity incomplete": "Mark activity complete"}
+                                            >
+                                                {done? <Check size={18}/>:<Plus size={18}/>}
+                                            </button>
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                        </div>
+                        <div className="day-footer">
+                            <button 
+                                className="button button-outline"
+                                onClick={()=> setActiveDay(Math.max(0,activeDay-1))}
+                                disabled={activeDay===0}
+                            >
+                                <ArrowLeft size={16}/> Previous day
+                            </button>
+                            <span>{activeDay+1} of {itinerary.days.length}</span>
+                            <button 
+                                className="button button-primary"
+                                onClick={()=>setActiveDay(Math.min(itinerary.days.lenght-1,activeDay+1))}
+                                disabled={activeDay===itinerary.days.ength-1}
+                            >
+                                Next day <ArrowRight size={6}/>
+                            </button>
+                        </div>
+                        <p className="estimate-disclaimer">
+                            *All activity costs are illustrative estimates. Check opening hours,accesibility, availability and actual prices before travelling.Flights, insurance and unexpected costs are not included so always plan a little more money.
+                        </p>
+                    </div>
+                </div>
+                <section className="budget-breakdown">
+                    <div className="section-heading">
+                        <div>
+                            <span className="eyebrow">KNOW BEFORE YOU GO</span>
+                            <h2>Your budget, <em>at a glance.</em></h2>
+                        </div>
+                    </div>
+                    {Object.entries(itinerary.totals).map(([key,value])=>{
+                        const total =itinerary.estimatedTotal || 1;
+                        const labels={
+                            hotel:"Accommodation",
+                            food:"Food & drinks",
+                            transport:"Local transport",
+                            activities:"Activities"
+                        };
+                        const percent=Math.round(value/total*100);
+                        return(
+                            <div className="budget-row" key={key}>
+                                <div className="budget-row-top">
+                                    <span>{labels[key]}</span>
+                                    <strong>{money(value,currency)}</strong>
+                                </div>
+                                <div className="budget-bar">
+                                    <span style={{wdth:`${percent}%`}}/>
+                                </div>
+                                <small>{percent}% of estimated trip cost</small>
+                            </div>
+                        );
+                    })}
+                    <p className="estimate-disclaimer">
+                        This breakdown uses sample estimates. It is not a quote or guarantee of the amout you will spend.
+                    </p>
+                </section>
+            </section>
+        );
+    }
+function TripsPage({trips,onOpen,onDelete,onCreate}){
+    return(
+        <section className="collection-page">
+            <div className="collection-heading">
+                <div>
+                    <span className="eyebrow">YOUR PERSONAL COLLECTION</span>
+                    <h1>All your <em>adventures.</em></h1>
+                    <p>Keep your plans together and pick up where you left off.</p>
+                </div>
+                <button className="button button-primary" onClick={onCreate}>
+                    <Plus size={17}/> New trip
+                </button>
+            </div>
+            {trips.length===0?(
+                <div className="empty-state large-empty">
+                    <span className="empty-icon"><Compass size={30}/></span>
+                    <h2>Your next adventure is waiting.</h2>
+                    <p>Start planning and your trips will appear here.</p>
+                    <button className="button button-primary" onClick={onCreate}>
+                        Plan my first trip <ArrowRight size={16}/>
+                    </button>
+                </div>
+            ):(
+                <div className="saved-trip-grid">
+                    {trips.map((trip)=>(
+                        <article className="saved-trip-card" key={trip.id}>
+                            <button className="saved-trip-image" onClick={()=>onOpen(trip)}>
+                                <img src={trip.itinerary.destination.image} alt={trip.title}/>
+                                <span className="image-region">{trip.preferences.days} days</span>
+                            </button>
+                            <div className="saved-trip-copy">
+                                <span className="destination-country">{trip.itinerary.destination.country}</span>
+                                <h3>{trip.title}</h3>
+                                <p>
+                                    <Users size={14}/> {trip.preferences.travelers} travelers
+                                    <span>.</span>
+                                    <Waller size={14}/> {money(trip.itinerary.estimatedTotal,trip.preferences.currency)}
+                                </p>
+                                <div className="saved-trip-actions">
+                                    <button className="button button-primary" onClick={()=>onOpen(trio)}>
+                                        Open trip <ArrowRight size={15}/>
+                                    </button>
+                                    <button 
+                                        className="icon-button danger-button"
+                                        onClick={()=>{
+                                            if (window.confirm("Delete this saved trip?")) onDelete(trip.id);
+                                        }}
+                                        aria-label="Delete saved trip"
+                                    ><X size={17}/></button>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+}
+function SavedPage({favorites, onToggle, onPage}){
+    const saveddestinations=destinations.filter((item)=>favorites.includes(item.id));
+    return(
+        <section className="collection-page">
+            <div className="collection-heading">
+                <div>
+                    <span className="eyebrow">THE PLACES THAT STAY WHITH YOU</span>
+                    <h1>Places worth <em>remembering.</em></h1>
+                    <p>Save destinations now, turn them into adventure later.</p>
+                </div>
+            </div>
+            {saveddestinations.length===0?(
+                <div className="empty-state large-empty">
+                    <span className="empty-icon"><Heart size={30}/></span>
+                    <h2>Start your wish list.</h2>
+                    <p>Tap the heart on any destination to keep it here.</p>
+                    <button className="button button_primary" onClick={()=>onPlan()}>
+                        Find my next trip <ArrowRight size={16}/>
+                    </button>                
+                </div>
+            ):(
+                <div className="destination-grid">
+                    {savedDestinations.map((destination)=>(
+                        <DestinationCard
+                            key={destination.id}
+                            destination={destination}
+                            onSelect={()=>onPlan(destinations.id)}
+                            favorite
+                            onFavorite={()=>onToggle(destination.id)}
+                        />
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+}
+export default App;
