@@ -266,50 +266,90 @@ export function generateItinerary(preferences){
     const destination=
         destination.find((item)=>item.id===destinationId)??
         destination[0];
-        const numberOfDays=Math.max(
-            1,
-            Math.min(30,Number(days) || 1)
-        );
-        const people=Math.max(1,Number(travelers) || 1);
-        const totalBudget=Math.max(0,Number(budget) || 0);
-        const chosen = selectedInterests?.length
-            ? selectedInterests
-            :["culture","food","nature"];
-        const activitiesPerDay=
-            pace==="relaxed" ? 2 : pace==="packed"? 4:3;
-        const pool=activities
-            .filter((activity)=>
-                activity.tags.some((tag)=>chosen.includes(tag))
-            )
-            .sort((a,b)=>a.cost-b.cost);
-        const fallbackPool=pool.length? pool:activities;
-        const dailyBudgetPerPerson=totalBudget/people/numberOfDays;
-        const hotelPerDay=destination.hotelEstimate;
-        const estimatedFoodPerDay=25;
-        const estimatedTransportPerDay=10;
-        const dailyPlans=[];
-        for (let day=0; day<numberOfDays;day +=1){
-            const selected=[];
-            let cursor=day%fallbackPool.length;
-            while(
-                selected.length<activitiesPerDay &&
-                selected.length<fallbackPool.length
-            ){
-                const candidate=fallbackPool[cursor%fallbackPool.length];
-                cursor +=1;
-                if(!selected.some((item)=>item.id===candidate.id)){
-                    selected.push(candidate);
-                }
+    const numberOfDays=Math.max(
+        1,
+        Math.min(30,Number(days) || 1)
+    );
+    const people=Math.max(1,Number(travelers) || 1);
+    const totalBudget=Math.max(0,Number(budget) || 0);
+    const chosen = selectedInterests?.length
+        ? selectedInterests
+        :["culture","food","nature"];
+    const activitiesPerDay=
+        pace==="relaxed" ? 2 : pace==="packed"? 4:3;
+    const pool=activities
+        .filter((activity)=>
+            activity.tags.some((tag)=>chosen.includes(tag))
+        )
+        .sort((a,b)=>a.cost-b.cost);
+    const fallbackPool=pool.length? pool:activities;
+    const dailyBudgetPerPerson=totalBudget/people/numberOfDays;
+    const hotelPerDay=destination.hotelEstimate;
+    const estimatedFoodPerDay=25;
+    const estimatedTransportPerDay=10;
+    const dailyPlans=[];
+    for (let day=0; day<numberOfDays;day +=1){
+        const selected=[];
+        let cursor=day%fallbackPool.length;
+        while(
+            selected.length<activitiesPerDay &&
+            selected.length<fallbackPool.length
+        ) {
+            const candidate=fallbackPool[cursor%fallbackPool.length];
+            cursor +=1;
+            if(!selected.some((item)=>item.id===candidate.id)){
+                selected.push(candidate);
             }
-            const activityCost =selected.reduce(
-                (SunMedium,item)=> sum+ item.cost,
-                    0
-            );
-            const dayCost=
-                hotelPerDay+
-                estimatedFoodPerDay+
-                estimatedTransportPerDay+
-                activityCost;
-            
         }
+        const activityCost =selected.reduce(
+            (sum,item)=> sum+ item.cost,
+            0
+        );
+        const dayCost=
+            hotelPerDay+
+            estimatedFoodPerDay+
+            estimatedTransportPerDay+
+            activityCost;
+        dailyPlans.push({
+            day:day+1,
+            title:[
+                "Discover & explore",
+                "Culture & local flavors",
+                "Adventure & hidden gems",
+                "Slow down & enjoy",
+                "Your own kind of adventure"
+            ][day%5],
+            activities:selected,
+            estimatedCost:dayCost,
+            estimatedCostForGroup:dayCost*people,
+            budgetPerPerson:dailyBudgetPerPerson,
+            estimatedHours:selected.reduce(
+                (sum,item)=>sum +item.duration/60,
+                0
+            )
+        });
+    }
+    const totals={
+        hotel:hotelPerDay*numberOfDays*people,
+        food:estimatedFoodPerDay*numberOfDays*people,
+        transport:estimatedTransportPerDay*numberOfDays*people,
+        activities:dailyPlans.reduce(
+            (sum,day)=>
+                sum+
+                day.activities.reduce((subtotal,item)=>subtotal+item.cost,0),
+            0
+        )*people
+    };
+    const estimatedTotal=
+    totals.hotel+totals.food+totals.transport+totals.activities;
+    return{
+        destination,
+        days:dailyPlans,
+        travelers:people,
+        totalBudget,
+        estimatedTotal,
+        remainingBudget:totalBudget-estimatedTotal,
+        totals,
+        budgetPerPerson:totalBudget/people
+    };
 }
