@@ -70,7 +70,8 @@ function durationLabel(minutes){
 function App(){
     const [page,setPage]=useState("home");
     const [preferences,setPreferences]=useState(initialPreferences);
-    const [trips,setTripId,setActiveTripId]=useState(null);
+    const [trips,setTrips]=useState(()=>readTrips());
+    const [activeTripId,setActiveTripId]=useState(null);
     const [activeDay,setActiveDay]=useState(0);
     const [completed,setCompleted]=useState({});
     const [favorites,setFavorites]=useState([]);
@@ -81,7 +82,7 @@ function App(){
     const currentTrip=trips.find((trip)=>trip.id===activeTripId)??null;
     useEffect(()=>{
         try{
-            localStorage.setItems(STORAGE_KEY, JSON.stringify(trips));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
         }catch{
             setNotice("Storage is full export your trips before saving more.");
         }
@@ -91,7 +92,7 @@ function App(){
         const timeout=window.setTimeout(()=>setNotice(""),3000);
         return () =>window.clearTimeout(timeout);
     },[notice]);
-    const filterDestinations=useMenu(()=>{
+    const filterDestinations=useMemo(()=>{
         const query=search.trim().toLowerCase();
         return destinations.filter((destination)=>
             `${destination.name} ${destination.country} ${destination.tags.join(" ")}`
@@ -179,9 +180,9 @@ function App(){
         ];
         trip.itinerary.days.forEach((day)=>{
             lines.push(`DAY${day.day}-${day.title}`);
-            day.activities.forEach((acticity)=>{
+            day.activities.forEach((activity)=>{
                 lines.push(
-                    `${activity.time} | ${activity.title} | ${durationLabel(acticity.duration)} | ${money(activity.cost,trip.preferences.currency)} per person`
+                    `${activity.time} | ${activity.title} | ${durationLabel(activity.duration)} | ${money(activity.cost,trip.preferences.currency)} per person`
                 );
             });
             lines.push(
@@ -228,8 +229,8 @@ function App(){
         }
     }
     const featuredDestinations=showAllDestinations
-        ? filteredDestinations
-        : filteredDestinations.slice(0,4);
+        ? filterDestinations
+        : filterDestinations.slice(0,4);
     const selectedDestination=
         destinations.find((item)=>item.id===preferences.destinationId)??
         destinations[0];
@@ -253,7 +254,7 @@ function App(){
                 </button>
                 <button
                     className="mobile-menu-toggle icon-button"
-                    onClick={()=>setMobileMenu((old)=>!ols)}
+                    onClick={()=>setMobileMenu((old)=>!old)}
                     aria-label="Toggle navigation"
                 >
                     {mobileMenu ? <X/>: <Menu/>}
@@ -280,13 +281,13 @@ function App(){
                     </button>
                     <button
                         className={page==="saved"?"nav-link active":"nav-link"}
-                        onClick={()=> {setPage("saved"); setMobileMrnu(false);}}
+                        onClick={()=> {setPage("saved"); setMobileMenu(false);}}
                     >
                         Saved places
                     </button>
                 </nav>
                 <button className="topbar-cta" onClick={()=>openPlanner()}>
-                    Start planning <ArrowUpRigth size={16} />
+                    Start planning <ArrowUpRight size={16} />
                 </button>
             </header>
             <main>
@@ -296,7 +297,7 @@ function App(){
                         search={search}
                         setSearch={setSearch}
                         openPlanner={openPlanner}
-                        toggleFavorites={toggleFavorites}
+                        toggleFavorites={toggleFavorite}
                         favorites={favorites}
                         showAll={showAllDestinations}
                         setShowAll={setShowAllDestinations}
@@ -304,10 +305,10 @@ function App(){
                     />
                 )}
                 {page==="planner"&&(
-                    <Plannerpage
+                    <PlannerPage
                         preferences={preferences}
                         updatePreferences={updatePreferences}
-                        toggleInterests={toggleInterests}
+                        toggleInterests={toggleInterest}
                         selectedDestination={selectedDestination}
                         onGerenate={buildTrip}
                         onBack={()=>setPage("home")}
@@ -469,7 +470,7 @@ function HomePage({
                     <p>Tell me what matters to you. I'll help you make a plan.</p>
                 </div>
                 <button className="button button-light" onClick={()=>openPlanner()}>
-                    Build my itinerary <Arrowright size={17}/>
+                    Build my itinerary <ArrowRight size={17}/>
                 </button>
             </section>
         </>
@@ -515,7 +516,7 @@ function DestinationCard({
 function PlannerPage({
     preferences,
     updatePreference,
-    toggleInterst,
+    toggleInterest,
     selectedDestination,
     onGenerate,
     onBack
@@ -549,7 +550,7 @@ function PlannerPage({
             <button className="bacl-link" onClick={goBack}>
                 <ArrowLeft size={16}/> {step===1? "Back to Discover": "Previous step"}
             </button>
-            <div xlassName="planner-heading">
+            <div className="planner-heading">
                 <span className="eyebrow"><Sparkles size={14}/> THE ARTOF YOUR ADVENTURE</span>
                 <h1>Your trip, <em>your way.</em></h1>
                 <p>Three simple steps to a plan that feels like you, something taht you choose to do.</p>
@@ -576,7 +577,7 @@ function PlannerPage({
                                     value={preferences.destinationId}
                                     onChange={(event)=> updatePreference("destinationId",event.target.value)}
                                 >
-                                    {destination.map((item)=>(
+                                    {destinations.map((item)=>(
                                         <option value={item.id} key={item.id}>
                                             {item.name}, {item.country}
                                         </option>
@@ -746,7 +747,7 @@ function PlannerPage({
                     {errors && <p className="form-error" role="alert">{errors}</p>}
                     <div className="form-navigation">
                         <span>Step {step} of 3</span>
-                        {step>3?(
+                        {step<3?(
                             <button className="button button-primary" onClick={goNext}>
                                 Continue<ArrowRight size={17}/>
                             </button>
@@ -780,7 +781,7 @@ function PlannerPage({
                             <span>Total budget</span><strong>{money(totalBudget,preferences.currency)}</strong>
                         </div>
                         <div className="aside-tip">
-                            <sparkles size={16}/>
+                            <Sparkles size={16}/>
                             <span>Your itinerary will adapt to your interests and preferred pace.</span>
                         </div>
                     </div>
@@ -796,7 +797,7 @@ function ItineraryPage({
     onBack,
     onEdit,
     onExport,
-    onshare,
+    onShare,
     isComplete,
     toggleComplete
 }){
@@ -966,8 +967,8 @@ function ItineraryPage({
                             <span>{activeDay+1} of {itinerary.days.length}</span>
                             <button 
                                 className="button button-primary"
-                                onClick={()=>setActiveDay(Math.min(itinerary.days.lenght-1,activeDay+1))}
-                                disabled={activeDay===itinerary.days.ength-1}
+                                onClick={()=>setActiveDay(Math.min(itinerary.days.length-1,activeDay+1))}
+                                disabled={activeDay===itinerary.days.length-1}
                             >
                                 Next day <ArrowRight size={6}/>
                             </button>
@@ -1000,7 +1001,7 @@ function ItineraryPage({
                                     <strong>{money(value,currency)}</strong>
                                 </div>
                                 <div className="budget-bar">
-                                    <span style={{wdth:`${percent}%`}}/>
+                                    <span style={{width:`${percent}%`}}/>
                                 </div>
                                 <small>{percent}% of estimated trip cost</small>
                             </div>
@@ -1049,7 +1050,7 @@ function TripsPage({trips,onOpen,onDelete,onCreate}){
                                 <p>
                                     <Users size={14}/> {trip.preferences.travelers} travelers
                                     <span>.</span>
-                                    <Waller size={14}/> {money(trip.itinerary.estimatedTotal,trip.preferences.currency)}
+                                    <Wallet size={14}/> {money(trip.itinerary.estimatedTotal,trip.preferences.currency)}
                                 </p>
                                 <div className="saved-trip-actions">
                                     <button className="button button-primary" onClick={()=>onOpen(trio)}>
@@ -1071,8 +1072,8 @@ function TripsPage({trips,onOpen,onDelete,onCreate}){
         </section>
     );
 }
-function SavedPage({favorites, onToggle, onPage}){
-    const saveddestinations=destinations.filter((item)=>favorites.includes(item.id));
+function SavedPage({favorites, onToggle, onPlan}){
+    const savedDestinations=destinations.filter((item)=>favorites.includes(item.id));
     return(
         <section className="collection-page">
             <div className="collection-heading">
@@ -1082,7 +1083,7 @@ function SavedPage({favorites, onToggle, onPage}){
                     <p>Save destinations now, turn them into adventure later.</p>
                 </div>
             </div>
-            {saveddestinations.length===0?(
+            {savedDestinations.length===0?(
                 <div className="empty-state large-empty">
                     <span className="empty-icon"><Heart size={30}/></span>
                     <h2>Start your wish list.</h2>

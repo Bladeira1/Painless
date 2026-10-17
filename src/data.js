@@ -1,4 +1,4 @@
-export const destination=[
+export const destinations=[
     {
         id:"lisbon",
         name:"Lisbon",
@@ -17,7 +17,7 @@ export const destination=[
         country:"Italiy",
         region:"Europe",
         emoji:"🏛️",
-        images:"./images/rome.jpg",
+        image:"./images/rome.jpg",
         description:"Ancient history, beautiful monuments and the best Italian cuisine.",
         dailyEstimate:145,
         hotelEstimate:95,
@@ -43,8 +43,8 @@ export const destination=[
         emoji:"☀️",
         image:"./images/barcelona.jpg",
         description:"Architecture, Mediterranean beaches, incredible Tapas and lovely people and streets.",
-        dailyEstimates:125,
-        hotelEstimates:80,
+        dailyEstimate:125,
+        hotelEstimate:80,
         tags:["Culture","Beach","Food","Community"]
     },
     {
@@ -191,7 +191,7 @@ export const activities=[
     {
         id:"architecture",
         title:"Discover local architecture",
-        categorary:"culture",
+        category:"culture",
         emoji:"🏙️",
         duration:90,
         cost:10,
@@ -250,7 +250,7 @@ export const activities=[
         time:"Afternoon",
         description:"Find clothes, gifts, art, everything you wanted to buy from this country,now's the opportunity.",
         intensity:1,
-        tags:["shoopping","culture"],
+        tags:["shopping","culture"],
         outdoor:false
     }
 ];
@@ -264,8 +264,8 @@ export function generateItinerary(preferences){
         pace
     }=preferences;
     const destination=
-        destination.find((item)=>item.id===destinationId)??
-        destination[0];
+        destinations.find((item)=>item.id===destinationId)??
+        destinations[0];
     const numberOfDays=Math.max(
         1,
         Math.min(30,Number(days) || 1)
