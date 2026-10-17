@@ -407,9 +407,242 @@ function HomePage({
                         <span><strong>Your kind of trip</strong><small>Thoughtfully planned</small></span>
                     </div>
                     <div className="floating-note note-bottom">
-                        
+
                     </div>
                 </div>
             </section>
+            <section className="value-strip">
+                <div><span className="value-icon"><Wallet/></span><span><strong>Budget first</strong><small>Plan within your means</small></span></div>
+                <div><span className="value-icon"><CalendarDays/></span><span><strong>Day by Day</strong><small>A clear plan for each day</small></span></div>
+                <div><span className="value-icon"><Heart/></span><span><strong>Made fot you</strong><small>Your interests, your pace</small></span></div>
+            </section>
+            <section className="section destination-section" id="destinations">
+                <div className="section-heading">
+                    <div>
+                        <span className="eyebrow">A LITTLE INSPIRATION</span>
+                        <h2>Where will you<em>wander?</em></h2>
+                        <p>Find somewhere new, or search for a place you already love.</p>
+                    </div>
+                    <div className="destination-search">
+                        <Search size={17}/>
+                        <input 
+                            value={search}
+                            onChange={(event)=>setSearch(event.target.value)}
+                            placeholder="Search destinations..."
+                            aria-label="Search destinations"
+                        />
+                    </div>
+                </div>
+                <div className="destination-grid">
+                    {destinations.map((destination)=>(
+                        <DestinationCard
+                            key={destination.id}
+                            destination={destination}
+                            onselect={()=>openPlanner(destination.id)}
+                            favorite={favorites.includes(destination.id)}
+                            onFavorite={()=>toggleFavorite(destination.id)}
+                        />
+                    ))}
+                </div>
+                {destinations.length===0&&(
+                    <div className="empty-state">
+                        <Search size={28}/>
+                        <h3>No destinations found</h3>
+                        <p>Try a different city, country or keywork.</p>
+                    </div>
+                )}
+                <div className="center-action">
+                    <button 
+                        className="button button-outline"
+                        onClick={()=>setShowAll(!showAll)}
+                    >
+                        {showAll ? "Show fewer places":"Explore all sedtinations"}
+                        {showAll ? <ArrowUpRight size={16}/>: <ArrowRight size={16}/>}
+                    </button>
+                </div>
+            </section>
+            <section className="planner-banner">
+                <div className="banner-symbol"><Compass size={29}/></div>
+                <div className="banner-copy">
+                    <span className="eyebrow">YOUR NEXT ADVENTURE</span>
+                    <h2>One destination.<em>A thousand possibilities.</em></h2>
+                    <p>Tell me what matters to you. I'll help you make a plan.</p>
+                </div>
+                <button className="button button-light" onClick={()=>openPlanner()}>
+                    Build my itinerary <Arrowright size={17}/>
+                </button>
+            </section>
+        </>
+    );
+}
+function DestinationCard({
+    destination,
+    onSelect,
+    favorite,
+    onFavorite
+}){
+    return(
+        <article className="destination-card">
+            <button 
+                className="destination-image"
+                onClick={inSlect}
+                aria-label={`Plan a trip to ${destination.name}`}
+            >
+                <img src={destination.image} alt={destination.name} loading="lazy"/>
+                <span className="image-region">{destination.region}</span>
+            </button>
+            <button 
+                className={`favorite-button ${favorite ? "favorited":""}`}
+                onClick={onFavorite}
+                aria-label={favorite ? "Remove saved destination":"Save destination"}
+            >
+                <Heart size={18} fill={favorite ? "currentcolor":"none"}/>
+            </button>
+            <button className="destination-info" onClick={onSelect}>
+                <span className="destination-country">{destination.country}</span>
+                <span className="destination-title">
+                    {destination.name}<ArrowUpRight size={17}/>
+                </span>
+                <span className="destination-description">{destination.description}</span>
+                <span className="destination-bottom">
+                    <span>{destination.emoji} {destination.tags.slice(0,2).join(" . ")}</span>
+                    <span className="price-hint">From{money(destination.dailyEstimate)}/day*</span>
+                </span>
+            </button>
+        </article>
+    );
+}
+function PlannerPage({
+    preferences,
+    updatePreference,
+    toggleInterst,
+    selectedDestination,
+    onGenerate,
+    onBack
+}){
+    const [step,setStep]=useState(1);
+    const [errors,setErrors]=useState("");
+    const totalBudget=Math.max(0,Number(preferences.budget) || 0);
+    const travelers=Math.max(1,Number(preferences.travelers) || 1);
+    const days=Math.max(1,Number(preferences.days) || 1);
+    const perPerson=totalBudget/travelers;
+    const perDay= perPerson/days;
+    function goNext(){
+        if(step===1 && !preferences.destinationId){
+            setErrors("Choose a destination to continue.");
+            return;
+        }
+        if(step===2 && preferences.interests.length===0){
+            setErrors("Choose at least one interest.");
+            return;
+        }
+        setErrors("");
+        setStep((old)=>Math.min(3,old + 1));
+    }
+    function goBack(){
+        setErrors("");
+        if(step>1) setStep((old)=>old-1);
+        else onBack();
+    }
+    return(
+        <section className="planner-page">
+            <button className="bacl-link" onClick={goBack}>
+                <ArrowLeft size={16}/> {step===1? "Back to Discover": "Previous step"}
+            </button>
+            <div xlassName="planner-heading">
+                <span className="eyebrow"><Sparkles size={14}/> THE ARTOF YOUR ADVENTURE</span>
+                <h1>Your trip, <em>your way.</em></h1>
+                <p>Three simple steps to a plan that feels like you, something taht you choose to do.</p>
+            </div>
+            <div className="step-progress">
+                {[1,2,3].map((item)=>(
+                    <div className={`step-item ${step>=item ? "step-active":""}`} key={item}>
+                        <span className="step-number">{step>item ? <Check size={15}/>:item}</span>
+                        <span>{["Destination","Your interests","Budget & pace"][item-1]}</span>
+                    </div>
+                ))}
+            </div>
+            <div className="planner-layout">
+                <div className="planner-form">
+                    {step===1 &&(
+                        <div className="form-panel">
+                            <span className="panel-kicker">01 - THE DESTINATION</span>
+                            <h2>Where are we going?</h2>
+                            <p>Choose you destination and tell me how long you'll be away.</p>
+                            <div className="form-field">
+                                <label htmlFor="destination">Destination</label>
+                                <select 
+                                    id="destination"
+                                    value={preferences.destinationId}
+                                    onChange={(event)=> updatePreference("destinationId",event.target.value)}
+                                >
+                                    {destination.map((item)=>(
+                                        <option value={item.id} key={item.id}>
+                                            {item.name}, {item.country}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="field-grid">
+                                <div className="form-field">
+                                    <label htmlFor="days">Length of stay</label>
+                                    <div className="number-control">
+                                        <button 
+                                            onClick={()=>updatePreference("days",Math.max(1,days-1))}
+                                            aria-label="Decrease trip length"
+                                        ><Minus size={16}/></button>
+                                        <strong>{days} {days===1? "day":"days"}</strong>
+                                        <button 
+                                            onClick={()=> updatePreference("days",Math.min(30, days+1))}
+                                            aria-label="Increase trip length"
+                                        ><Plus size={16}/></button>
+                                    </div>
+                                </div>
+                                <div className="form-field">
+                                    <label htmlFor="travelers">Travelers</label>
+                                    <div className="number-control">
+                                        <button 
+                                            onClick={()=>updatePreference("travelers", Math.max(1, travelers -1))}
+                                            aria-label="Decrease travelers"
+                                        ><Minus size={16}/></button>
+                                        <strong>{travelers} {travelers===1? "person":"people"}</strong>
+                                        <button 
+                                            onClick={()=>updatePreference("travelers",Math.min(20,travelers +1))}
+                                            aria-label="increase travelers"
+                                        ><Plus size={16}/></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="form-field">
+                                <label htmlFor="food">Food preferences</label>
+                                <select 
+                                    id="food"
+                                    value={preferences.foodPreferences}
+                                    onChange={(event)=> updatePreference("foodPreference",event.target.value)}
+                                >
+                                    <option value="local">Local food & specialities</option>
+                                    <option value="vegetarian">Vegetarian.friendly</option>
+                                    <option value="mixed">A bit of everything</option>
+                                    <option value="budget">Budget-friendly meals</option>
+                                </select>
+                            </div>
+                            <div className="form-field">
+                                <label htmlFor="accommodation">Accommodation style</label>
+                                <select    
+                                    id="accommodation"
+                                    value={preferences.accommodation}
+                                    onChange={(event)=> updatePreference("accommodation",event.target.value)}
+                                >
+                                    <option value="budget">Budget / hostel</option>
+                                    <option value="comfortable">Comfortable hotel</option>
+                                    <option value="premium">Premium stay</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+                    
+                </div>
+            </div>
+        </section>
     )
 }
